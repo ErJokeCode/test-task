@@ -22,15 +22,15 @@ class SwapiDev:
         if not os.path.exists(self.__temp_folder):
             os.makedirs(self.__temp_folder)
 
-    async def create_people_excel(self, resp: Response) -> FileInfo:
+    async def peoples_excel(self, resp: Response) -> FileInfo:
         _log.info("Start create excel")
 
-        peoples_dict = await self.peoples(resp)
-        file_people = PeopleSD(peoples_dict)
+        md_peoples = await self.peoples(resp)
+        file_people = PeopleSD(md_peoples)
 
         return file_people.to_excel(self.__temp_folder)
 
-    async def peoples(self, resp: Response = Response()) -> list[dict]:
+    async def peoples(self, resp: Response = Response()) -> list[People]:
         _log.info("Start get info people")
 
         url = self.__url + "people"
@@ -44,7 +44,7 @@ class SwapiDev:
 
         pages_peoples: list[list] = await asyncio.gather(*tasks)
 
-        peoples = [People(**people).model_dump(by_alias=True)
+        peoples = [People(**people)
                    for page in pages_peoples for people in page]
 
         return peoples

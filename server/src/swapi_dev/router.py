@@ -4,6 +4,7 @@ from fastapi import APIRouter, Response, UploadFile
 from fastapi.responses import FileResponse
 
 from models.swapi_dev.people_statistic import PeopleStatistic
+from models.swapi_dev.people import People
 from swapi_dev.swapi_dev import swapi_dev
 
 
@@ -15,12 +16,17 @@ router = APIRouter(
 )
 
 
-@router.get("/people/file", )
+@router.get("/people")
+async def get_peoples(resp: Response) -> list[People]:
+    return await swapi_dev.peoples(resp)
+
+
+@router.get("/people/file")
 async def get_excel(
     resp: Response
 ) -> FileResponse:
 
-    file_info = await swapi_dev.create_people_excel(resp)
+    file_info = await swapi_dev.peoples_excel(resp)
 
     return FileResponse(
         path=file_info.path,

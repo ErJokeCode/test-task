@@ -13,20 +13,21 @@ _log = logging.getLogger(__name__)
 
 
 class PeopleSD:
-    def __init__(self, peoples: list[dict] | pd.DataFrame) -> None:
+    def __init__(self, peoples: list[People] | pd.DataFrame) -> None:
         if isinstance(peoples, pd.DataFrame):
             df = peoples
+            s_name = People.list_serialization_alias()
+            err_cols = [s_name[i]
+                        for i in range(len(s_name))
+                        if s_name[i] != df.columns[i]]
+
+            if len(err_cols) > 0:
+                raise HTTPException(
+                    status_code=400, detail=f"Excel file does not have required columns. Add cols {err_cols}")
         else:
-            df = pd.DataFrame(peoples)
-
-        s_name = People.list_serialization_alias()
-        err_cols = [s_name[i]
-                    for i in range(len(s_name))
-                    if s_name[i] != df.columns[i]]
-
-        if len(err_cols) > 0:
-            raise HTTPException(
-                status_code=400, detail=f"Excel file does not have required columns. Add cols {err_cols}")
+            dict_people = [people.model_dump(
+                by_alias=True) for people in peoples]
+            df = pd.DataFrame(dict_people)
 
         if df.empty:
             raise HTTPException(
