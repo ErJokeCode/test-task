@@ -4,54 +4,38 @@ import os
 import aiohttp
 import asyncio
 import pandas as pd
-from fastapi import Response
-from fastapi.exceptions import HTTPException
+from fastapi import Response, UploadFile
 
 from models.swapi_dev.people import People
 from models.swapi_dev.create_file import FileInfo
+from models.swapi_dev.people_statistic import PeopleStatistic
+from swapi_dev.people import PeopleSD
 
 _log = logging.getLogger(__name__)
 
 
 class SwapiDev:
-    def __init__(self, url):
+    def __init__(self, url: str, temp_folder: str):
         self.__url = url
+        self.__temp_folder = temp_folder
+
+        if not os.path.exists(self.__temp_folder):
+            os.makedirs(self.__temp_folder)
 
     async def create_people_excel(self, resp: Response) -> FileInfo:
         _log.info("Start create excel")
 
-        peoples_dict = await self.get_people(resp)
-        peoples = self.__get_peoples_model(peoples_dict)
+        peoples_dict = await self.peoples(resp)
+        file_people = PeopleSD(peoples_dict)
 
-        df = pd.DataFrame(peoples)
+        return file_people.to_excel(self.__temp_folder)
 
-        folder_path = '../static'
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-
-        file_name = f"people_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.xlsx"
-        path_new_file = f"{folder_path}/{file_name}"
-
-        df.to_excel(path_new_file)
-
-        asyncio.create_task(self.__delete_file_timeout(20, path_new_file))
-
-        return FileInfo(path=path_new_file, name=file_name, type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
-    async def __delete_file_timeout(self, timeout: int, path: str):
-        await asyncio.sleep(timeout)
-        if os.path.exists(path):
-            os.remove(path)
-
-    def __get_peoples_model(self, people: list[dict]) -> list[dict]:
-        return [People.model_validate(person).model_dump() for person in people]
-
-    async def get_people(self, resp: Response) -> list[dict]:
+    async def peoples(self, resp: Response = Response()) -> list[dict]:
         _log.info("Start get info people")
 
-        start_page = 1
-        end_page = 2
         url = self.__url + "people"
+        start_page = 1
+        end_page = await self.__count_page(url) + start_page
 
         tasks = []
         for i in range(start_page, end_page):
@@ -60,7 +44,8 @@ class SwapiDev:
 
         pages_peoples: list[list] = await asyncio.gather(*tasks)
 
-        peoples = [people for page in pages_peoples for people in page]
+        peoples = [People(**people).model_dump(by_alias=True)
+                   for page in pages_peoples for people in page]
 
         return peoples
 
@@ -88,5 +73,48 @@ class SwapiDev:
                     resp.status_code = 206
                     return []
 
+    async def __count_page(self, url: str) -> int:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    page_json: dict = await response.json()
+                    count = page_json.get("count")
+                    one_page = page_json.get("results")
 
-swapi_dev = SwapiDev("https://swapi.dev/api/")
+                    if one_page == None or count == None:
+                        _log.warning(
+                            "Count page fail one_page or count is None. Dict: %s", page_json)
+                        return 1
+                    len_one_page = len(one_page)
+
+                    return (count // len_one_page) + int(count % len_one_page != 0)
+                else:
+                    _log.error(
+                        "Get json about people fail. Error: %s", response.text)
+                    return 1
+
+    async def stitistic(self, file: UploadFile | None = None) -> PeopleStatistic:
+        _log.info("Get stitistics")
+
+        if file is None:
+            peoples_dict = await self.peoples()
+            df = pd.DataFrame(peoples_dict)
+        else:
+            excel = pd.ExcelFile(await file.read())
+            df = pd.read_excel(excel)
+
+        file_people = PeopleSD(df)
+
+        return PeopleStatistic(
+            height=file_people.statistic_height,
+            mass=file_people.statistic_mass,
+            popular_hair_color=file_people.popular_hair_color,
+            unpopular_skin_color=file_people.unpopular_skin_color,
+            people_by_eye_color=file_people.people_by_eye_color,
+            highest_woman=file_people.highest_woman,
+            oldest_man=file_people.oldest_man,
+            popular_homeworld=file_people.popular_homeworld
+        )
+
+
+swapi_dev = SwapiDev("https://swapi.dev/api/", "temp")
