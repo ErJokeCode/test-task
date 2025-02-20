@@ -6,6 +6,7 @@ import logging
 
 from config import settings
 from swapi_dev.router import router as r_swapi_dev
+from chat.router import router as r_chat
 
 
 _log = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ app.add_middleware(
 )
 
 app.include_router(r_swapi_dev)
+app.include_router(r_chat)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", reload=True)
