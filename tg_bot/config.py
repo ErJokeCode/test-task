@@ -5,6 +5,7 @@ import logging
 
 class Settings(BaseSettings):
     TOKEN: str
+    SERVER_URL: str
 
     def __init__(self):
         super().__init__(
