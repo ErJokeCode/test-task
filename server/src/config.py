@@ -4,10 +4,14 @@ import logging
 
 
 class Settings(BaseSettings):
+    BOT_TOKEN: str
+    DB_HOST: str
+    DB_PORT: int
+    DB_NAME: str
 
     def __init__(self):
         super().__init__(
-            _env_file="../.env",
+            _env_file=".env",
             _env_file_encoding="utf-8",
         )
         self.config_logging()
