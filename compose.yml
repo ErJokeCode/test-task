@@ -1,0 +1,31 @@
+services:
+  bot:
+    build: ./tg_bot
+    command: python main.py
+    depends_on:
+      server:
+        condition: service_started
+    volumes:
+      - ./tg_bot:/app/tg_bot
+
+  mongodb:
+    image: mongo
+    restart: always
+    ports:
+      - 27071:27017
+    volumes:
+      - mongodb:/var/lib/mongo/data
+
+  server:
+    build: ./server
+    command: python src/main.py
+    ports:
+      - 8000:8000
+    depends_on:
+      mongodb:
+        condition: service_started
+    volumes:
+      - ./server:/app/server
+
+volumes:
+  mongodb:

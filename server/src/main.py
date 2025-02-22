@@ -25,8 +25,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 origins = [
-    "http://localhost",
-    "http://127.0.0.1"
+    "*",
 ]
 
 app.add_middleware(
@@ -41,4 +40,4 @@ app.include_router(r_swapi_dev)
 app.include_router(r_chat)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

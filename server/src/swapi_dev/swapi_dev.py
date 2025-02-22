@@ -117,4 +117,4 @@ class SwapiDev:
         )
 
 
-swapi_dev = SwapiDev("https://swapi.dev/api/", "temp")
+swapi_dev = SwapiDev("https://swapi.dev/api/", "static/swapi_dev")
