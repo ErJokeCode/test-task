@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +22,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan,
 )
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 origins = [
     "http://localhost",

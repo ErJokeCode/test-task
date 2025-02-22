@@ -8,7 +8,8 @@ class Message(EBaseModel):
     user_id: int
     sender: str = Sender.admin.value
     text: str | None
-    created_at: datetime = datetime.now(timezone.utc)
+    created_at: str
+    admin_read: bool = False
 
     @classmethod
     def primary_keys(self) -> list[str]:
@@ -20,13 +21,12 @@ class Message(EBaseModel):
 class MessageAdmin(BaseModel):
     user_id: int
     text: str | None
-    created_at: datetime = datetime.now(timezone.utc)
+    created_at: datetime
 
 
 class MessageUser(BaseModel):
     user_id: int
     text: str | None
-    created_at: datetime = datetime.now(timezone.utc)
 
 
 class MessageInDB(Message, BaseModelInDB):

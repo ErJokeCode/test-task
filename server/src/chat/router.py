@@ -1,19 +1,25 @@
+import asyncio
+from datetime import datetime, timezone
 import logging
 
 from aiogram import Bot
-from fastapi import APIRouter, WebSocket
+from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
 from config import settings
 from models.chat.tg_user import TgUser
 from models.chat.message import Message, MessageAdmin, MessageUser
 from database.database import m_databese
 from models.base import Resp, Sender
+from chat.manager_ws import ws_chat_manager
 
 
 _log = logging.getLogger(__name__)
 
-bot = Bot(token=settings.BOT_TOKEN)
+
+templates = Jinja2Templates(directory="templates")
 
 router = APIRouter(
     prefix="/chat",
@@ -21,10 +27,13 @@ router = APIRouter(
 )
 
 
-@router.get("/")
-async def get_chats():
-    # страница списка чатов и вход в них
-    return {"message": "Hello from chat"}
+@router.get("/", response_class=HTMLResponse)
+async def get_chats(request: Request):
+    users = m_databese.tg_user.find()
+    _log.info(users)
+    return templates.TemplateResponse(
+        request=request, name="item.html", context={"users": users}
+    )
 
 
 @router.post("/bot/user")
@@ -32,6 +41,7 @@ async def add_user_tg(
     user: TgUser
 ) -> Resp:
     m_databese.tg_user.insert_one(user)
+    await ws_chat_manager.new_user(user)
     return Resp()
 
 
@@ -44,36 +54,25 @@ async def get_message_from_tg(
         user_id=message.user_id,
         sender=Sender.user.value,
         text=message.text,
-        created_at=message.created_at
+        created_at=datetime.now(timezone.utc).isoformat()
     )
+
+    _log.info(m_msg)
+
     if user_id != m_msg.user_id:
         raise HTTPException(status_code=400, detail="User id not match")
 
     m_databese.message.insert_one(m_msg)
+    _log.info(m_msg)
+    asyncio.create_task(ws_chat_manager.send_message(m_msg))
     return Resp()
 
 
-@router.post("/{user_id}")
-async def send_message_to_tg(
-    user_id: int,
-    message: MessageAdmin
-) -> Resp:
-    message_admin = Message(**message.model_dump())
-    if user_id != message_admin.user_id:
-        raise HTTPException(status_code=400, detail="User id not match")
-    if message_admin.text is None:
-        raise HTTPException(status_code=400, detail="Message is empty")
-    msg = await bot.send_message(user_id, message_admin.text)
-    _log.info(msg)
-    _log.info(message_admin)
-    _log.info(message_admin.model_dump_json())
-    m_databese.message.insert_one(message_admin)
-    return Resp()
-
-
-@router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await websocket.receive_text()
-        await websocket.send_json({"message": data})
+@router.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket,  client_id: str):
+    await ws_chat_manager.connect(client_id, websocket)
+    try:
+        while True:
+            await ws_chat_manager.receive(client_id)
+    except WebSocketDisconnect:
+        ws_chat_manager.disconnect(client_id)
