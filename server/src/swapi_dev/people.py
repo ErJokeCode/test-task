@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime
 import logging
 import os
+from aiohttp import ClientSession
 from fastapi import HTTPException
 import pandas as pd
 
@@ -122,6 +123,13 @@ class PeopleSD:
         return None
 
     @property
-    def popular_homeworld(self) -> str:
+    async def popular_homeworld(self) -> str:
         name_col = self.__df.columns
-        return self.__df[name_col[8]].value_counts().keys()[0]
+        url = self.__df[name_col[8]].value_counts().keys()[0]
+        async with ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    json: dict = await response.json()
+                    return json["name"]
+                else:
+                    raise Exception

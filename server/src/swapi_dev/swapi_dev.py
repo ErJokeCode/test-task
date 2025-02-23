@@ -112,7 +112,7 @@ class SwapiDev:
             people_by_eye_color=file_people.people_by_eye_color,
             highest_woman=file_people.highest_woman,
             oldest_man=file_people.oldest_man,
-            popular_homeworld=file_people.popular_homeworld
+            popular_homeworld=await file_people.popular_homeworld
         )
 
 
