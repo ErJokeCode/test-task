@@ -35,7 +35,7 @@ async def get_excel(
     )
 
 
-@router.post("/people/file/statistic")
+@router.post("/people/statistic")
 async def get_excel_static(
     file: UploadFile | None = None
 ) -> PeopleStatistic:
