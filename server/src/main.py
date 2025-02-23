@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan,
 )
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/src/static", StaticFiles(directory="static"), name="static")
 
 origins = [
     "*",

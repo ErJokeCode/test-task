@@ -32,7 +32,7 @@ async def get_chats(request: Request):
     users = m_databese.tg_user.find()
     _log.info(users)
     return templates.TemplateResponse(
-        request=request, name="item.html", context={"users": users}
+        request=request, name="index.html", context={"users": users}
     )
 
 
