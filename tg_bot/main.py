@@ -31,6 +31,9 @@ async def start(message: types.Message):
                 if response.status == 200:
                     _log.info("User added")
                     await message.answer('Привет! Это чат с кем-то)) Напиши первое сообщение!')
+                elif response.status == 400:
+                    _log.error("User already added")
+                    await message.answer('Привет! Ты уже есть в системе)')
                 else:
                     _log.error("User not added")
                     await message.answer('Привет! Ошибка на сервере( Попробуй еще раз выполнить команду /start')

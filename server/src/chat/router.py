@@ -40,6 +40,8 @@ async def get_chats(request: Request):
 async def add_user_tg(
     user: TgUser
 ) -> Resp:
+    if m_databese.tg_user.find_one(user_id=user.user_id) is not None:
+        raise HTTPException(status_code=400, detail="User already exists")
     m_databese.tg_user.insert_one(user)
     await ws_chat_manager.new_user(user)
     return Resp()
