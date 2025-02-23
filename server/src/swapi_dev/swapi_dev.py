@@ -97,13 +97,12 @@ class SwapiDev:
         _log.info("Get stitistics")
 
         if file is None:
-            peoples_dict = await self.peoples()
-            df = pd.DataFrame(peoples_dict)
+            m_peoples = await self.peoples()
+            file_people = PeopleSD(m_peoples)
         else:
             excel = pd.ExcelFile(await file.read())
             df = pd.read_excel(excel)
-
-        file_people = PeopleSD(df)
+            file_people = PeopleSD(df)
 
         return PeopleStatistic(
             height=file_people.statistic_height,

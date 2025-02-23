@@ -14,7 +14,7 @@ class Settings(BaseSettings):
             _env_file=".env",
             _env_file_encoding="utf-8",
         )
-        self.config_logging()
+        self.config_logging(logging.WARNING)
 
     def config_logging(self, level=logging.INFO) -> None:
         logging.basicConfig(
